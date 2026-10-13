@@ -53,10 +53,20 @@ function nameOf(iso2: string): string {
 }
 
 export function sampleName(rng: Rng, country: CountryRecord, sex: Sex): DrawnName | null {
-  const givenSource = source(rng, country, sex === "female" ? "F" : "M");
+  const key = sex === "female" ? "F" : "M";
+  // Use the country's own lists. A regional fallback swaps in one other country for the whole name,
+  // so given name and surname come from the same naming tradition.
+  const givenSource = source(rng, country, key);
+  let surnameSource: ReturnType<typeof source> = null;
+  if (givenSource && !givenSource.fallback) {
+    const own = names.countries[country.iso2]?.S;
+    surnameSource = own && own.n.length > 0 ? { iso2: country.iso2, list: own, fallback: false } : null;
+  } else if (givenSource) {
+    const donor = names.countries[givenSource.iso2]?.S;
+    surnameSource = donor && donor.n.length > 0 ? { iso2: givenSource.iso2, list: donor, fallback: true } : null;
+  }
   if (!givenSource) return null;
   const given = draw(rng, givenSource.list);
-  const surnameSource = source(rng, country, "S");
   const surname = surnameSource ? draw(rng, surnameSource.list) : null;
   return {
     given: given.name,
@@ -76,8 +86,8 @@ export function sampleName(rng: Rng, country: CountryRecord, sex: Sex): DrawnNam
 export function nameCitation(name: DrawnName, country: CountryRecord): SheetCitation {
   const fallback = name.givenFallback || name.surnameFallback;
   const geography = fallback
-    ? `${country.regionName} (regional fallback: no list for ${country.name}; given name from ${name.givenFrom}${name.surnameFrom ? `, surname from ${name.surnameFrom}` : ""})`
-    : country.name;
+    ? `${country.regionName} (regional fallback: no name list for ${country.name}, so names from ${name.givenFrom})`
+    : `${country.name}${name.surname ? "" : " (no surname list; given name only)"}`;
   return {
     source: names.source,
     indicator: `Most common given names by sex${name.surname ? " and most common surnames" : ""} (${names.license})`,

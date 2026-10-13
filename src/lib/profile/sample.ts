@@ -203,8 +203,8 @@ export function sampleProfile(rng: Rng = Math.random, options: { iso3?: string }
   const diabetes = age >= 20 && age <= 79 ? resolveSeries(country, "SH.STA.DIAB.ZS") : null;
   if (diabetes) conditions.diabetes = bernoulli(rng, diabetes, "ages 20–79", "percent")!;
 
-  const hivCode = sex === "female" ? "SH.DYN.AIDS.FE.ZS" : "SH.DYN.AIDS.MA.ZS";
-  const hiv = age >= 15 && age <= 49 ? resolveSeries(country, hivCode) ?? resolveSeries(country, "SH.DYN.AIDS.ZS") : null;
+  // SH.DYN.AIDS.FE/MA.ZS are each sex's share of people living with HIV, not prevalence, so use the 15–49 prevalence.
+  const hiv = age >= 15 && age <= 49 ? resolveSeries(country, "SH.DYN.AIDS.ZS") : null;
   if (hiv) conditions.hiv = bernoulli(rng, hiv, "ages 15–49", "percent")!;
 
   const stuntCode = sex === "female" ? "SH.STA.STNT.FE.ZS" : "SH.STA.STNT.MA.ZS";

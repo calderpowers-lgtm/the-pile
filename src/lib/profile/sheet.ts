@@ -1,7 +1,10 @@
 import { dataset, geographyLabel } from "@/lib/profile/data";
 import type { Profile } from "@/lib/profile/sample";
 import type { ResolvedNumber } from "@/lib/profile/types";
+import rawCurrencies from "@/data/pile-currencies.json";
 import { nameCitation } from "@/lib/profile/names";
+
+const currencies = rawCurrencies as unknown as { source: string; url: string; countries: Record<string, [string, string]> };
 import type { Draw } from "@/lib/profile/sample";
 import type { FactSection, GeneratedSheet, SheetCitation, SheetFact, SheetProblem } from "@/lib/types";
 
@@ -758,7 +761,7 @@ export function problemsFromProfile(profile: Profile): SheetProblem[] {
       id,
       statement,
       probability: invert
-        ? `Drawn with probability ${pct(prob)}: the published rate with access is ${rateText} (${draw.group}).`
+        ? `Drawn with probability ${pct(prob)}, which is 100% minus the ${rateText} who do (${draw.group}).`
         : `Drawn with probability ${pct(prob)}, the published rate for ${draw.group}.`,
       citation: fromResolved(draw.rate),
     });
@@ -827,12 +830,23 @@ export function sheetFromProfile(profile: Profile): GeneratedSheet {
   if (profile.income && profile.annualPpp != null && annual) {
     const child = profile.age < 18;
     const per = welfarePhrase(profile.income.block.welfare);
+    const code = profile.country.currency || currencies.countries[profile.country.iso3]?.[0] || "";
+    const gdpPpp = profile.country.series["PA.NUS.PPP"];
+    let local: string | null = null;
+    let localNote = "";
+    if (code && profile.annualLocal != null && profile.annualLocal > 0) {
+      local = localMoney(profile.annualLocal, code);
+      localNote = ` Local currency (${code}) uses the 2021 PPP factor from World Bank PIP, so it reflects buying power, not the market exchange rate.`;
+    } else if (code && gdpPpp && gdpPpp.v > 0) {
+      local = localMoney(profile.annualPpp * gdpPpp.v, code);
+      localNote = ` PIP has no consumption PPP factor here, so local currency (${code}) uses the World Bank GDP PPP conversion factor (PA.NUS.PPP, ${gdpPpp.y}: ${gdpPpp.v.toFixed(2)} per international $). It reflects buying power, not the market exchange rate, and is approximate.`;
+    }
     headlineIncome = {
       usd: money(profile.annualPpp, 0),
-      local: profile.annualLocal != null && profile.country.currency ? localMoney(profile.annualLocal, profile.country.currency) : null,
+      local,
       label: child ? "Household income per person, per year" : "Income per year",
       citation: annual.citation,
-      howDrawn: `Decile ${profile.decile} average ${per} per day × 365, in 2021 USD PPP${profile.annualLocal != null ? "; local currency converted with the World Bank PPP factor, so it reflects buying power, not the market exchange rate" : ""}.${child ? " A child has no income of their own; this is the household's income divided per person." : ""}`,
+      howDrawn: `Decile ${profile.decile} average ${per} per day × 365, in 2021 USD PPP.${localNote} Currency code: ${currencies.source}.${child ? " A child has no income of their own; this is the household's income divided per person." : ""}`,
     };
   }
   return {
