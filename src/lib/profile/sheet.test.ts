@@ -5,6 +5,7 @@ import { generateSheet } from "@/lib/generator";
 import { dataset, geographyLabel } from "@/lib/profile/data";
 import { resolveIncome } from "@/lib/profile/lookup";
 import { expectedBirths, sampleProfile } from "@/lib/profile/sample";
+import { sheetFromProfile } from "@/lib/profile/sheet";
 import { mulberry32 } from "@/lib/random";
 import { isDrawnSheet, isGeneratedSheet, type SheetFact } from "@/lib/types";
 
@@ -196,5 +197,44 @@ describe("sheets", () => {
       }),
       false,
     );
+  });
+});
+
+describe("name, income headline, and problems", () => {
+  it("draws a cited name, a headline income, and only consistent problems", () => {
+    const rng = mulberry32(4242);
+    let named = 0;
+    for (let i = 0; i < 400; i += 1) {
+      const profile = sampleProfile(rng);
+      const sheet = sheetFromProfile(profile);
+      if (sheet.name) {
+        named += 1;
+        assert.ok(sheet.name.text.length >= 2);
+        assert.match(sheet.name.citation.url, /^https:\/\//);
+        assert.equal(sheet.facts[0]!.id, "name");
+      }
+      if (profile.annualPpp != null) assert.ok(sheet.headlineIncome?.usd.startsWith("$"));
+      if (profile.age < 18 && sheet.headlineIncome) assert.match(sheet.headlineIncome.label, /Household income per person/);
+      const ids = new Set((sheet.problems ?? []).map((p) => p.id));
+      if (profile.age < 15) {
+        for (const id of ["unemployed", "informal", "hypertension", "diabetes", "ipv", "account", "saved", "emergency", "literacy"]) assert.ok(!ids.has(id), `${id} at age ${profile.age}`);
+      }
+      if (profile.sex === "male") assert.ok(!ids.has("ipv"));
+      if (ids.has("unemployed")) assert.ok(!ids.has("informal"));
+      for (const problem of sheet.problems ?? []) {
+        assert.doesNotMatch(problem.statement, FIRST_PERSON);
+        assert.match(problem.probability, /\d/);
+        assert.match(problem.citation.url, /^https:\/\//);
+      }
+      if (profile.conditions.hypertension?.present === false) assert.ok(!ids.has("hypertension"));
+    }
+    assert.ok(named > 380, `named ${named}`);
+  });
+
+  it("falls back to the region when a country has no name list", () => {
+    const profile = sampleProfile(mulberry32(7), { iso3: "NGA" });
+    const sheet = sheetFromProfile(profile);
+    assert.ok(sheet.name);
+    assert.match(sheet.name.citation.geography, /regional fallback/);
   });
 });

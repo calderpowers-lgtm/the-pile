@@ -124,6 +124,19 @@ export type GeneratedSheet = {
   region: string;
   iso3: string;
   facts: SheetFact[];
+  /** Likely name, drawn from national name-frequency lists. Older saved sheets do not have it. */
+  name?: { text: string; citation: SheetCitation; howDrawn: string } | null;
+  /** Annual income headline. */
+  headlineIncome?: { usd: string; local: string | null; label: string; citation: SheetCitation; howDrawn: string } | null;
+  /** Problems this person was drawn to have. */
+  problems?: SheetProblem[];
+};
+
+export type SheetProblem = {
+  id: string;
+  statement: string;
+  probability: string;
+  citation: SheetCitation;
 };
 
 export type DrawnSheet = GeneratedSheet & {

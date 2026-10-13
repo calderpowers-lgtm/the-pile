@@ -1,7 +1,9 @@
 import { dataset, geographyLabel } from "@/lib/profile/data";
 import type { Profile } from "@/lib/profile/sample";
 import type { ResolvedNumber } from "@/lib/profile/types";
-import type { FactSection, GeneratedSheet, SheetCitation, SheetFact } from "@/lib/types";
+import { nameCitation } from "@/lib/profile/names";
+import type { Draw } from "@/lib/profile/sample";
+import type { FactSection, GeneratedSheet, SheetCitation, SheetFact, SheetProblem } from "@/lib/types";
 
 const SECTION_TITLES: Record<FactSection, string> = {
   where: "Where they live",
@@ -729,9 +731,110 @@ export function factsFromProfile(profile: Profile): SheetFact[] {
   return facts.map((item) => ({ ...item, value: item.value.replace(/\s+/g, " ").trim() }));
 }
 
+const SHARE_INDICATORS = ["account_t_d", "save_any_t_d", "fin24aP", "UNHCR2024", "WHR2026_NEGATIVE_AFFECT"];
+
+function probabilityOf(rate: ResolvedNumber): number {
+  return SHARE_INDICATORS.includes(rate.i) ? rate.v : rate.v / 100;
+}
+
+function pct(p: number): string {
+  if (p > 0 && p < 0.001) return "under 0.1%";
+  return `${(p * 100).toFixed(1)}%`;
+}
+
+/**
+ * Only outcomes this person was actually drawn to have. Each one shows the
+ * probability of that outcome, which is the published rate (or 1 − rate for a
+ * missing service), for the group the draw used.
+ */
+export function problemsFromProfile(profile: Profile): SheetProblem[] {
+  const problems: SheetProblem[] = [];
+  const add = (id: string, draw: Draw | null, when: boolean, statement: string, invert = false) => {
+    if (!draw || !draw.rate || draw.present !== when) return;
+    const p = probabilityOf(draw.rate);
+    const prob = invert ? 1 - p : p;
+    const rateText = pct(p);
+    problems.push({
+      id,
+      statement,
+      probability: invert
+        ? `Drawn with probability ${pct(prob)}: the published rate with access is ${rateText} (${draw.group}).`
+        : `Drawn with probability ${pct(prob)}, the published rate for ${draw.group}.`,
+      citation: fromResolved(draw.rate),
+    });
+  };
+
+  if (profile.income && profile.dailyPpp != null) {
+    const block = profile.income.block;
+    const line = profile.dailyPpp < 3 ? "3" : profile.dailyPpp < 4.2 ? "4.2" : null;
+    if (line) {
+      const head = block.headcount[line];
+      problems.push({
+        id: "poverty",
+        statement:
+          line === "3"
+            ? "Lives below the $3.00-a-day extreme poverty line."
+            : "Lives below the $4.20-a-day poverty line.",
+        probability: `Follows from the income draw above (decile ${profile.decile}). ${head != null ? `${pct(head)} of people in ${profile.income.gname} live below this line.` : "National headcount not in the extract."}`,
+        citation: catalogCitation("PIP", block.headcountYear[line] ?? block.year, geographyLabel(profile.income.kind, profile.income.gname)),
+      });
+    }
+  }
+  const c = profile.conditions;
+  add("hypertension", c.hypertension ?? null, true, "Has high blood pressure (hypertension).");
+  add("diabetes", c.diabetes ?? null, true, "Has diabetes.");
+  add("hiv", c.hiv ?? null, true, "Is living with HIV.");
+  add("stunting", c.stunting ?? null, true, "Is stunted: too short for their age from long-term undernutrition.");
+  add("anemia", c.anemia ?? null, true, "Has anemia.");
+  add("depression", profile.depression, true, "Has depression.");
+  add("food", profile.food, true, "Faces moderate or severe food insecurity: not always able to get enough food.");
+  add("water", profile.water, false,
+    profile.water?.rate?.i.includes("SMDW")
+      ? "Does not have safely managed drinking water (clean, on the premises, available when needed)."
+      : "Does not have even basic drinking water.", true);
+  add("sanitation", profile.sanitation, false,
+    profile.sanitation?.rate?.i.includes("SMSS")
+      ? "Does not have a safely managed toilet."
+      : "Does not have even a basic private, hygienic toilet.", true);
+  add("account", profile.account, false, "Has no bank or mobile-money account.", true);
+  add("saved", profile.saved, false, "Saved no money in the past year.", true);
+  add("emergency", profile.emergency, false, "Could not come up with emergency money if it were needed.", true);
+  add("unemployed", profile.employment.unemployed, true, "Is unemployed and looking for work.");
+  add("informal", profile.employment.informal, true, "Works an informal job, usually without a contract, sick pay, or pension.");
+  add("displaced", profile.displaced, true, "Has been forced from home: a refugee, asylum seeker, or internally displaced person.");
+  add("literacy", profile.literacy, false, "Cannot read and write.", true);
+  add("school", profile.inSchool, false, "Is not enrolled in school.", true);
+  add("ipv", profile.ipv, true, "Was physically or sexually abused by a partner in the past 12 months.");
+  return problems;
+}
+
 export function sheetFromProfile(profile: Profile): GeneratedSheet {
   const facts = factsFromProfile(profile);
   const settingLabel = profile.setting === "urban" ? "Urban" : profile.setting === "rural" ? "Rural" : "";
+  let name: GeneratedSheet["name"] = null;
+  if (profile.name) {
+    const n = profile.name;
+    const text = n.surname ? `${n.given} ${n.surname}` : n.given;
+    const citation = nameCitation(n, profile.country);
+    const weightNote = (w: string | null) =>
+      w === "count" ? "weighted by the published number of people with each name" : "weighted by 1/rank (a Zipf approximation, because the list gives ranks, not counts)";
+    const howDrawn = `Given name drawn from the most common ${profile.sex === "female" ? "girls'/women's" : "boys'/men's"} names listed for ${n.givenFrom}${n.years ? ` (${n.years} list)` : ""}, ${weightNote(n.givenWeight)}; about ${pct(n.givenShare)} of that list's weight.${n.surname ? ` Surname drawn from the most common surnames in ${n.surnameFrom}, ${weightNote(n.surnameWeight)}.` : " No surname list was available, so only a given name is shown."}${n.givenFallback || n.surnameFallback ? ` ${profile.country.name} has no list in the dataset, so a population-weighted country from ${profile.country.regionName} was used.` : ""} Many lists rank names given to babies in one year, so older people may be less likely to carry them.`;
+    name = { text, citation, howDrawn };
+    facts.unshift({ id: "name", section: "where", label: "Likely name", value: text, figure: null, citation, howDrawn });
+  }
+  let headlineIncome: GeneratedSheet["headlineIncome"] = null;
+  const annual = facts.find((item) => item.id === "annual");
+  if (profile.income && profile.annualPpp != null && annual) {
+    const child = profile.age < 18;
+    const per = welfarePhrase(profile.income.block.welfare);
+    headlineIncome = {
+      usd: money(profile.annualPpp, 0),
+      local: profile.annualLocal != null && profile.country.currency ? localMoney(profile.annualLocal, profile.country.currency) : null,
+      label: child ? "Household income per person, per year" : "Income per year",
+      citation: annual.citation,
+      howDrawn: `Decile ${profile.decile} average ${per} per day × 365, in 2021 USD PPP${profile.annualLocal != null ? "; local currency converted with the World Bank PPP factor, so it reflects buying power, not the market exchange rate" : ""}.${child ? " A child has no income of their own; this is the household's income divided per person." : ""}`,
+    };
+  }
   return {
     id: profile.id,
     displayName: personWord(profile.age, profile.sex),
@@ -742,6 +845,9 @@ export function sheetFromProfile(profile: Profile): GeneratedSheet {
     region: profile.country.name,
     facts,
     iso3: profile.country.iso3,
+    name,
+    headlineIncome,
+    problems: problemsFromProfile(profile),
   };
 }
 

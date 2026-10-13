@@ -49,7 +49,7 @@ export function HistoryList() {
           <li key={entry.id}>
             <Link href={`/history/entry?id=${encodeURIComponent(entry.id)}`} className="pile-shadow block rounded-3xl border border-border bg-card px-4 py-4">
               <p className="font-serif text-xl tracking-tight">
-                {entry.sheet.displayName}, {entry.sheet.age}
+                {entry.sheet.name?.text ? `${entry.sheet.name.text}, ` : `${entry.sheet.displayName}, `}{entry.sheet.age}
               </p>
               <p className="mt-0.5 text-sm text-muted-foreground">{entry.sheet.place}</p>
               <p className="mt-2 text-sm">

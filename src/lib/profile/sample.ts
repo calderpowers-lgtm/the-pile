@@ -13,6 +13,7 @@ import {
   type ResolvedFindex,
   type ResolvedIncome,
 } from "@/lib/profile/lookup";
+import { sampleName, type DrawnName } from "@/lib/profile/names";
 import type { CountryRecord, ResolvedNumber, SuicideBand } from "@/lib/profile/types";
 import { chance, integer, makeId, weighted, type Rng } from "@/lib/random";
 import type { Sex, Setting } from "@/lib/types";
@@ -69,6 +70,7 @@ export type Profile = {
   malaria: ResolvedNumber | null;
   tb: ResolvedNumber | null;
   lex: { value: number; at: string; sex: Sex } | null;
+  name: DrawnName | null;
 };
 
 type EducationLevel = "less than primary" | "primary" | "upper secondary" | "bachelor or higher";
@@ -316,6 +318,9 @@ export function sampleProfile(rng: Rng = Math.random, options: { iso3?: string }
     if (chosen) lexValue = { ...chosen, sex };
   }
 
+  // Drawn last so earlier draws keep the same random stream.
+  const name = sampleName(rng, country, sex);
+
   return {
     id: makeId(rng),
     country,
@@ -362,5 +367,6 @@ export function sampleProfile(rng: Rng = Math.random, options: { iso3?: string }
     malaria,
     tb,
     lex: lexValue,
+    name,
   };
 }
