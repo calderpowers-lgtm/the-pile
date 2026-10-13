@@ -1,0 +1,54 @@
+[
+  {
+    "item": "SH.DYN.AIDS.MA.ZS",
+    "detail": "No World Bank metadata ([{'message': [{'id': '120', 'key': 'Invalid value', 'value': 'The provided parameter value is not valid'}]}])"
+  },
+  {
+    "item": "SH.DYN.AIDS.MA.ZS",
+    "detail": "World Bank returned no data rows: [{'message': [{'id': '120', 'key': 'Invalid value', 'value': 'The provided parameter value is not valid'}]}]"
+  },
+  {
+    "item": "SH.UHC.SRVS.CV.XD",
+    "detail": "World Bank returned no data rows: [{'message': [{'id': '175', 'key': 'Invalid format', 'value': 'The indicator was not found. It may have been deleted or archived.'}]}]"
+  },
+  {
+    "item": "SL.ISV.IFRM.ZS",
+    "detail": "World Bank returned no data rows: [{'message': [{'id': '175', 'key': 'Invalid format', 'value': 'The indicator was not found. It may have been deleted or archived.'}]}]"
+  },
+  {
+    "item": "SL.ISV.IFRM.FE.ZS",
+    "detail": "World Bank returned no data rows: [{'message': [{'id': '175', 'key': 'Invalid format', 'value': 'The indicator was not found. It may have been deleted or archived.'}]}]"
+  },
+  {
+    "item": "SL.ISV.IFRM.MA.ZS",
+    "detail": "World Bank returned no data rows: [{'message': [{'id': '175', 'key': 'Invalid format', 'value': 'The indicator was not found. It may have been deleted or archived.'}]}]"
+  },
+  {
+    "item": "Depression age and sex",
+    "detail": "WHO GHO GDO_q35 is a national estimate without age or sex. Latest years in the extract: 2015. IHME age-sex prevalence was not available as an open download from this environment."
+  },
+  {
+    "item": "Anxiety prevalence",
+    "detail": "WHO GHO indicator search for anxiety returned no series. IHME GBD anxiety prevalence was not available as an open download from this environment, so anxiety is omitted."
+  },
+  {
+    "item": "WID wealth files",
+    "detail": "17 ISO2 files were missing or had no complete decile. Those countries use a population-weighted WID region average when one exists."
+  },
+  {
+    "item": "Stress, worry, and sadness separately",
+    "detail": "Gallup Global Emotions publishes stress, worry, and sadness separately, but not as an open data file. The sheet uses World Happiness Report 2026 negative affect (the average of Gallup worry, sadness, and anger for 2023\u20132025) and does not split out stress."
+  },
+  {
+    "item": "Household size",
+    "detail": "No official API in this run returned average household size for each country. UN WPP and World Bank WDI do not publish it. The sheet omits household size."
+  },
+  {
+    "item": "Marital status",
+    "detail": "UN World Population Prospects does not publish marital status, and the UN Data Portal data endpoint returned HTTP 401. Marital status is omitted rather than estimated."
+  },
+  {
+    "item": "Male age-specific fertility",
+    "detail": "UN WPP 2024 publishes age-specific fertility for women only. Sheets do not assign a child count to men."
+  }
+]
