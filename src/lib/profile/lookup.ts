@@ -82,14 +82,19 @@ export function resolveFindex(country: CountryRecord): ResolvedFindex | null {
   return null;
 }
 
+/** Findex extracts store an exact 0 with no breakdowns where the question was not asked. Treat it as missing. */
+function usable(value: number | null): number | null {
+  return value == null || value === 0 ? null : value;
+}
+
 export function rateForSex(block: { women: number | null; men: number | null; all: number | null }, sex: "female" | "male"): number | null {
   const specific = sex === "female" ? block.women : block.men;
-  return specific ?? block.all;
+  return usable(specific) ?? usable(block.all);
 }
 
 export function rateForIncome(block: { poor40: number | null; rich60: number | null; all: number | null }, percentile: number): number | null {
   const specific = percentile <= 40 ? block.poor40 : block.rich60;
-  return specific ?? block.all;
+  return usable(specific) ?? usable(block.all);
 }
 
 type Average = { v: number; y: number; pop: number };

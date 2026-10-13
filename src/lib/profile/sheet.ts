@@ -834,7 +834,9 @@ export function sheetFromProfile(profile: Profile): GeneratedSheet {
     const gdpPpp = profile.country.series["PA.NUS.PPP"];
     let local: string | null = null;
     let localNote = "";
-    if (code && profile.annualLocal != null && profile.annualLocal > 0) {
+    if (code === "USD") {
+      local = null;
+    } else if (code && profile.annualLocal != null && profile.annualLocal > 0) {
       local = localMoney(profile.annualLocal, code);
       localNote = ` Local currency (${code}) uses the 2021 PPP factor from World Bank PIP, so it reflects buying power, not the market exchange rate.`;
     } else if (code && gdpPpp && gdpPpp.v > 0) {
