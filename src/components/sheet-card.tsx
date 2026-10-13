@@ -26,7 +26,7 @@ function FactLine({ fact }: { fact: SheetFact }) {
 export function SheetCard({ sheet }: { sheet: DrawnSheet }) {
   const sources = sourcesFromFacts(sheet.facts);
   return (
-    <article className="pile-shadow rounded-3xl border border-border bg-card px-5 py-6">
+    <article className="pile-shadow min-w-0 [overflow-wrap:anywhere] rounded-3xl border border-border bg-card px-5 py-6">
       <p className="text-xs font-medium tracking-[0.16em] text-primary uppercase">A sheet from the pile</p>
       <h2 tabIndex={-1} className="mt-3 font-serif text-4xl tracking-tight outline-none">
         {sheet.displayName}, {sheet.age}
@@ -52,7 +52,7 @@ export function SheetCard({ sheet }: { sheet: DrawnSheet }) {
         </p>
         <ul className="mt-3 space-y-2">
           {sources.map((source) => (
-            <li key={`${source.source}-${source.indicator}`} className="text-xs leading-relaxed text-muted-foreground">
+            <li key={`${source.source}-${source.indicator}`} className="text-xs leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
               {source.source}. {source.indicator}. {source.url}
             </li>
           ))}
