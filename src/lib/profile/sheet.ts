@@ -839,7 +839,8 @@ export function sheetFromProfile(profile: Profile): GeneratedSheet {
     } else if (code && profile.annualLocal != null && profile.annualLocal > 0) {
       local = localMoney(profile.annualLocal, code);
       localNote = ` Local currency (${code}) uses the 2021 PPP factor from World Bank PIP, so it reflects buying power, not the market exchange rate.`;
-    } else if (code && gdpPpp && gdpPpp.v > 0) {
+    } else if (code && code !== "VES" && gdpPpp && gdpPpp.v > 0) {
+      // VES is skipped: the bolívar was redenominated in 2021 and the GDP PPP series does not line up with it.
       local = localMoney(profile.annualPpp * gdpPpp.v, code);
       localNote = ` PIP has no consumption PPP factor here, so local currency (${code}) uses the World Bank GDP PPP conversion factor (PA.NUS.PPP, ${gdpPpp.y}: ${gdpPpp.v.toFixed(2)} per international $). It reflects buying power, not the market exchange rate, and is approximate.`;
     }
